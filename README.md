@@ -1,4 +1,4 @@
-# Speculative Execution Exploit
+# Speculative Execution
 
 This is an experiment demonstrating how speculative execution can be used to leak data via microarchitectural side effects, using the CPU cache as a side-channel. The experiment is scoped to user-space memory to keep it reproducible and predictable. It's intentionally minimal and serves as a baseline for future experiments.
 

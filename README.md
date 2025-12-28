@@ -1,13 +1,13 @@
 # Speculative Execution Exploit
 
-This is a minimal proof-of-concept demonstrating how speculative execution can be used to leak data via microarchitectural side effects, using the CPU cache as a side channel. The PoC is scoped to user-space memory to keep it reproducible and educational.
+This is an experiment demonstrating how speculative execution can be used to leak data via microarchitectural side effects, using the CPU cache as a side-channel. The experiment is scoped to user-space memory to keep it reproducible and predictable.
 
-## What this PoC demonstrates
+## What this experiment demonstrates
 
 - Transient execution of instructions past a faulting access before the fault is resolved architecturally.
-- Encoding secret data into cache state using a Flush+Reload side channel
-- Reliable byte-wise extraction via timing measurements
-- Noise reduction using repeated sampling and statistical decoding
+- Using a Flush+Reload oracle buffer to encode and later recover byte values from CPU cache timing.
+- Reliable byte-wise extraction via timing measurements.
+- Noise reduction using repeated sampling and statistical decoding.
 
 ## High-Level Overview
 
@@ -15,9 +15,9 @@ This is a minimal proof-of-concept demonstrating how speculative execution can b
 
 - A fake secret buffer is allocated in user space
 
-This avoids kernel-mapping issues and keeps the PoC deterministic.
+This avoids kernel-mapping issues and keeps the experiment deterministic.
 
-2. Encoding buffer
+2. Communication buffer
 
 - A shared communication buffer of 256 pages (256 × 4096 bytes) is used.
 - One page per possible byte value
@@ -28,12 +28,12 @@ The core gadget in in speculative_exploit.s:
 
 - Reads a byte from the target address
 - Uses that byte to index into the communication buffer
-- Touches a specific cache line transiently
+- Touches a specific CPU cache line transiently
 - Eventually faults, but leaves cache state behind
 
 4. Side-channel recovery
 
-- All pages are flushed with clflush
+- All pages from communication buffer are flushed with clflush
 - After the fault, reload times are measured
 - The cached page will determine the leaked byte value
 

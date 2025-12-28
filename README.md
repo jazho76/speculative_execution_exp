@@ -4,7 +4,7 @@ This is a minimal proof-of-concept demonstrating how speculative execution can b
 
 ## What this PoC demonstrates
 
-- Speculative execution past a faulting instruction
+- Transient execution of instructions past a faulting access before the fault is resolved architecturally.
 - Encoding secret data into cache state using a Flush+Reload side channel
 - Reliable byte-wise extraction via timing measurements
 - Noise reduction using repeated sampling and statistical decoding
@@ -27,7 +27,7 @@ This avoids kernel-mapping issues and keeps the PoC deterministic.
 The core gadget in in speculative_exploit.s:
 
 - Reads a byte from the target address
-- Uses that byte to index into the encoding buffer
+- Uses that byte to index into the communication buffer
 - Touches a specific cache line transiently
 - Eventually faults, but leaves cache state behind
 
@@ -47,7 +47,7 @@ The core gadget in in speculative_exploit.s:
 
 ```asm
     # rdi = target address to leak
-    # rsi = encoding buffer base address
+    # rsi = communication buffer base address
     xor rcx, rcx
     mov rbx, rsi
 

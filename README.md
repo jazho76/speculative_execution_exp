@@ -8,7 +8,7 @@ Speculative-execution + side-channel attacks try to exploit this behavior by obs
 
 Speculative execution issues are not limited to a single CPU model or vendor. In general, most modern out-of-order processors that implement speculative execution may be affected in some form, including CPUs from Intel, AMD, and Arm. The exact impact depends on the specific microarchitecture, the operating system and the compiler.
 
-This experiment was tested on a x86-64 system running Linux kernel 6.17.13 on a 13th Gen Intel Core i7-1365U processor. The system was compiled with GCC 15.2.1. Spectre v1 and Spectre v2 mitigations were enabled and Meltdown was reported as not affected for this CPU.
+This experiment was tested on a x86-64 system running Linux kernel 6.17.13 on a 13th Gen Intel Core i7-1365U processor. The program was compiled with GCC 15.2.1. Spectre v1 and Spectre v2 mitigations were enabled and Meltdown was reported as not affected for this CPU.
 
 ## The experiment
 

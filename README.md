@@ -10,9 +10,9 @@ Speculative execution issues are not limited to a single CPU model or vendor. In
 
 This experiment was tested on a x86-64 system running Linux kernel 6.17.13 on a 13th Gen Intel Core i7-1365U processor. The system was compiled with GCC 15.2.1. Spectre v1 and Spectre v2 mitigations were enabled and Meltdown was reported as not affected for this CPU.
 
-![experiment run screenshot](./screenshot.png)
-
 ## The experiment
+
+![experiment run screenshot](./screenshot.png)
 
 This is a self-contained experiment to observe how CPUs can execute instructions that never architecturally happened. It also serves as a toy example of how speculative execution can leak data via microarchitectural side effects, using CPU cache lines as a side channel.
 

@@ -80,6 +80,12 @@ To recover the encoded value from the communication buffer, this experiment uses
 
 Before each speculative attempt, all pages of the communication buffer are explicitly flushed from the cache using the `clflush` instruction. This guarantees a known initial state where no page is cached at the start of the process. After the speculative execution window closes and the fault is handled, the program reloads each page of the communication buffer while measuring access latency. The page that was accessed transiently will still reside in the cache and therefore load noticeably faster than the others. By identifying the fastest reload, the experiment determines which cache line was touched during speculative execution, revealing the secret-dependent memory access.
 
+## Measurement pitfalls
+
+Accurate cache-timing measurements depend heavily on the execution environment and CPU microarchitecture. Modern CPUs often use a mix of per-core and shared cache levels. If execution migrates across CPU cores due to scheduling or context switches, cache state may not be preserved as expected, leading to inconsistent or incorrect measurements. To avoid this, the experiment is pinned to run on a single CPU core.
+
+Another source of noise is hardware prefetching. CPUs may speculatively load memory based on observed access patterns (independently of the transient gadget). To mitigate this, the experiment accesses the communication buffer in a mangled order, making memory access patterns harder to predict and reducing unintended prefetching that would otherwise distort the measurements.
+
 ## Limitations and caveats
 
 This experiment is intentionally simplified and is meant for demonstration purposes only. Several factors may limit its reliability and generality.
@@ -94,4 +100,4 @@ Finally, this code is not intended to demonstrate a practical exploit, but rathe
 
 ## References and further exploration
 
-If you find this topic interesting, I encourage you to explore the [pwn.college Microarchitecture Exploitation Dojo](https://pwn.college/system-security/speculative-execution/). It offers hands-on challenges that get much closer to real-world vulnerabilities, including Flush+Reload, Spectre, and Meltdown style attacks.
+If you find this topic interesting, I encourage you to explore the [pwn.college Microarchitecture Exploitation Dojo](https://pwn.college/system-security/speculative-execution/). It also offers hands-on challenges that get much closer to real-world vulnerabilities, including Flush+Reload, Spectre and Meltdown style attacks.

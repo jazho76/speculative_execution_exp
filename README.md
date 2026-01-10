@@ -6,9 +6,11 @@ Speculative-execution + side-channel attacks try to exploit this behavior by obs
 
 ## Affected Hardware
 
-Speculative execution issues are not limited to a single CPU model or vendor. In general, most modern out-of-order processors that implement speculative execution may be affected in some form, including CPUs from Intel, AMD, and Arm. The exact impact depends on the specific microarchitecture, the operating system and the compiler. 
+Speculative execution issues are not limited to a single CPU model or vendor. In general, most modern out-of-order processors that implement speculative execution may be affected in some form, including CPUs from Intel, AMD, and Arm. The exact impact depends on the specific microarchitecture, the operating system and the compiler.
 
-This experiment was tested on a x86-64 system running Linux kernel 6.17.13 on a 13th Gen Intel Core i7-1365U processor. The system was compiled with GCC 15.2.1. Spectre v1 and Spectre v2 mitigations were enabled and Meltdown was reported as not affected for this CPU. 
+This experiment was tested on a x86-64 system running Linux kernel 6.17.13 on a 13th Gen Intel Core i7-1365U processor. The system was compiled with GCC 15.2.1. Spectre v1 and Spectre v2 mitigations were enabled and Meltdown was reported as not affected for this CPU.
+
+![experiment run screenshot](./screenshot.png)
 
 ## The experiment
 
@@ -20,23 +22,23 @@ Here we deliberately make the CPU execute a slow chain of dependent instructions
 
 In this experiment, these components work together to demonstrate a speculative side-channel leak.
 
-__1. Secret source__
+**1. Secret source**
 
 A fake "secret" value is allocated in user space and acts as the input to the speculative access.
 
-__2. Communication buffer__
+**2. Communication buffer**
 
 A shared communication buffer is used to translate secret-dependent memory accesses into observable microarchitectural effects.
 
-__3. Transient gadget__
+**3. Transient gadget**
 
 The core gadget, implemented in speculative_exploit.s, executes transiently while the CPU is still waiting for earlier, slower operations to complete.
 
-__4. Side-channel recovery__
+**4. Side-channel recovery**
 
 A cache-based side channel is used to recover which part of the communication buffer was accessed during transient execution.
 
-__5. Noise handling__
+**5. Noise handling**
 
 To reduce measurement noise, the experiment relies on repeated sampling, histogram-based decoding, and a pseudo-random probing order to minimize hardware prefetch effects.
 
@@ -86,7 +88,7 @@ First, the experiment assumes a controlled environment. Cache noise from other p
 
 Second, modern CPUs and operating systems include multiple mitigations against speculative execution attacks. Depending on the platform, microcode updates, kernel configurations, and compiler mitigations may reduce the observable effects demonstrated here.
 
-Third, the experiment operates entirely in user space and does not cross privilege boundaries. Real-world attacks will work on more complex scenarios. 
+Third, the experiment operates entirely in user space and does not cross privilege boundaries. Real-world attacks will work on more complex scenarios.
 
 Finally, this code is not intended to demonstrate a practical exploit, but rather to provide an intuitive illustration of how speculative execution and cache-based side channels can interact.
 

@@ -1,49 +1,46 @@
 # Speculative Execution
 
-This is an experiment demonstrating how speculative execution can be used to leak data via microarchitectural side effects, using the CPU cache as a side-channel. The experiment is scoped to user-space memory to keep it reproducible and predictable. It's intentionally minimal and serves as a baseline for future experiments.
+Speculative execution is an optimization technique used by modern CPUs to keep their pipelines busy. Instead of waiting for the outcome of slow operations, such as memory accesses, the processor predicts which instructions will be needed next and starts executing them ahead of time. If the prediction turns out to be wrong, the architectural effects of those instructions are discarded, as if they never ran, however, some microarchitectural traces are left, such as CPU cache lines.
 
-## What this experiment demonstrates
+Speculative-execution + side-channel attacks try to exploit this behavior by observing these residual effects. By carefully measuring timing differences, an attacker can infer information about code paths or data that were accessed transiently. This class of vulnerabilities became widely known in 2018 with disclosures such as [Meltdown and Spectre](https://meltdownattack.com/), showing that speculative execution can unintentionally expose sensitive data across isolation boundaries.
 
-- Transient execution of instructions past a faulting access before the fault is resolved architecturally.
-- Using a Flush+Reload oracle buffer to encode and later recover byte values from CPU cache timing.
-- Reliable byte-wise extraction via timing measurements.
-- Noise reduction using repeated sampling and statistical decoding.
+## Affected Hardware
 
-## High-Level Overview
+Speculative execution issues are not limited to a single CPU model or vendor. In general, most modern out-of-order processors that implement speculative execution may be affected in some form, including CPUs from Intel, AMD, and Arm. The exact impact depends on the specific microarchitecture, the operating system and the compiler. 
 
-1. Secret source
+This experiment was tested on a x86-64 system running Linux kernel 6.17.13 on a 13th Gen Intel Core i7-1365U processor. The system was compiled with GCC 15.2.1. Spectre v1 and Spectre v2 mitigations were enabled and Meltdown was reported as not affected for this CPU. 
 
-- A fake secret buffer is allocated in user space
+## The experiment
 
-This avoids kernel-mapping issues and keeps the experiment deterministic.
+This is a self-contained experiment to observe how CPUs can execute instructions that never architecturally happened. It also serves as a toy example of how speculative execution can leak data via microarchitectural side effects, using CPU cache lines as a side channel.
 
-2. Communication buffer
+Here we deliberately make the CPU execute a slow chain of dependent instructions that eventually triggers a segmentation fault. Just after these memory accesses, a second chain of dependent instructions performs a secret-dependent memory access. Although this second chain is never meant to execute architecturally, it can still run transiently while the processor is waiting for the slow instructions to complete. This allows the CPU to stay busy by speculatively executing ahead.
 
-- A shared communication buffer of 256 pages (256 × 4096 bytes) is used.
-- One page per possible byte value
+## High-level overview
 
-3. Transient gadget
+In this experiment, these components work together to demonstrate a speculative side-channel leak.
 
-The core gadget in in speculative_exploit.s:
+__1. Secret source__
 
-- Reads a byte from the target address
-- Uses that byte to index into the communication buffer
-- Touches a specific CPU cache line transiently
-- Eventually faults, but leaves cache state behind
+A fake "secret" value is allocated in user space and acts as the input to the speculative access.
 
-4. Side-channel recovery
+__2. Communication buffer__
 
-- All pages from communication buffer are flushed with clflush
-- After the fault, reload times are measured
-- The cached page will determine the leaked byte value
+A shared communication buffer is used to translate secret-dependent memory accesses into observable microarchitectural effects.
 
-5. Noise handling
+__3. Transient gadget__
 
-- Repeated sampling
-- Histogram-based decoding
-- Pseudo-random probing order to avoid prefetching
+The core gadget, implemented in speculative_exploit.s, executes transiently while the CPU is still waiting for earlier, slower operations to complete.
 
-## Speculative Gadget
+__4. Side-channel recovery__
+
+A cache-based side channel is used to recover which part of the communication buffer was accessed during transient execution.
+
+__5. Noise handling__
+
+To reduce measurement noise, the experiment relies on repeated sampling, histogram-based decoding, and a pseudo-random probing order to minimize hardware prefetch effects.
+
+## Speculative gadget
 
 ```asm
     # rdi = target address to leak
@@ -73,8 +70,26 @@ The core gadget in in speculative_exploit.s:
     mov rbx, [rbx]
 ```
 
-During speculative execution, the value loaded from the target address is used as an index into the communication buffer. Because the buffer is laid out as 256 page-sized regions, accessing `comm_buf[byte * 0x1000]` causes exactly one page corresponding to the secret byte to be loaded into the CPU cache. Although the faulting execution is later discarded architecturally, this cache state persists. After handling the fault, the program measures access latency to each page, the page that loads fastest reveals which value was accessed transiently, thereby leaking the secret byte through a microarchitectural side channel.
+During speculative execution, the value loaded from the target address is used as an index into the communication buffer. Because the buffer is covering 256 pages, accessing `comm_buf[byte * 0x1000]` causes exactly one page, corresponding to the secret byte, to be loaded into the CPU cache. Although the faulting execution is later discarded architecturally, this cache state persists.
 
-## Reference & Inspiration
+## Flush + Reload
 
-[pwn.college Microarchitecture Exploitation Dojo](https://pwn.college/system-security/speculative-execution/)
+To recover the encoded value from the communication buffer, this experiment uses a Flush + Reload technique. It relies on the fact that accessing data from the CPU cache is significantly faster than accessing it from main memory.
+
+Before each speculative attempt, all pages of the communication buffer are explicitly flushed from the cache using the `clflush` instruction. This guarantees a known initial state where no page is cached at the start of the process. After the speculative execution window closes and the fault is handled, the program reloads each page of the communication buffer while measuring access latency. The page that was accessed transiently will still reside in the cache and therefore load noticeably faster than the others. By identifying the fastest reload, the experiment determines which cache line was touched during speculative execution, revealing the secret-dependent memory access.
+
+## Limitations and caveats
+
+This experiment is intentionally simplified and is meant for demonstration purposes only. Several factors may limit its reliability and generality.
+
+First, the experiment assumes a controlled environment. Cache noise from other processes, interrupts, and context switches can significantly affect timing measurements and require repeated sampling to obtain stable results.
+
+Second, modern CPUs and operating systems include multiple mitigations against speculative execution attacks. Depending on the platform, microcode updates, kernel configurations, and compiler mitigations may reduce the observable effects demonstrated here.
+
+Third, the experiment operates entirely in user space and does not cross privilege boundaries. Real-world attacks will work on more complex scenarios. 
+
+Finally, this code is not intended to demonstrate a practical exploit, but rather to provide an intuitive illustration of how speculative execution and cache-based side channels can interact.
+
+## References and further exploration
+
+If you find this topic interesting, I encourage you to explore the [pwn.college Microarchitecture Exploitation Dojo](https://pwn.college/system-security/speculative-execution/). It offers hands-on challenges that get much closer to real-world vulnerabilities, including Flush+Reload, Spectre, and Meltdown style attacks.

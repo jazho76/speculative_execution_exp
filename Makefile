@@ -1,6 +1,6 @@
 CC      := gcc
-TARGET  := exploit
-SRC     := exploit.c speculative_exploit.s
+TARGET  := main
+SRC     := main.c speculative_gadget.s
 
 all: $(TARGET)
 

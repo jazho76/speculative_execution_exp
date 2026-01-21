@@ -32,7 +32,7 @@ A shared communication buffer is used to translate secret-dependent memory acces
 
 **3. Transient gadget**
 
-The core gadget, implemented in speculative_exploit.s, executes transiently while the CPU is still waiting for earlier, slower operations to complete.
+The core gadget, implemented in speculative_gadget.s, executes transiently while the CPU is still waiting for earlier, slower operations to complete.
 
 **4. Side-channel recovery**
 
